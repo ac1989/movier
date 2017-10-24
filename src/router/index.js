@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import HelloWorld from '@/components/HelloWorld';
+import Dashboard from '@/components/Dashboard';
 import About from '@/components/About';
 
 Vue.use(Router);
@@ -14,6 +15,11 @@ export default new Router({
     },
     {
       path: '/',
+      name: 'Dashboard',
+      component: Dashboard,
+    },
+    {
+      path: '/about',
       name: 'About',
       component: About,
     },
