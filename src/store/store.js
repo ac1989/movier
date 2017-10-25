@@ -7,7 +7,6 @@ Vue.use(Vuex);
 export default new Vuex.Store({
   state: {
     mode: 'rec',
-    searchMovie: 'Blade Runner 2049',
     recMovies: dummyData.results,
     selectedMovie: dummyData.results[1],
   },

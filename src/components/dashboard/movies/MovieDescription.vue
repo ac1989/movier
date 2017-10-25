@@ -1,8 +1,13 @@
 <template>
   <div class="movie-description">
-    <div class="desc-left">
+    <div class="desc-header">
       <h1>{{ movie.title }} <span class="faint">({{ movieYear }})</span></h1>
+    </div>
+    <div class="desc-body">
+    <div class="desc-left">
       <p>{{ movie.overview }}</p> 
+      <h3>Recommendation Reason:</h3>
+      <p>Cast</p>
     </div>
     <div class="desc-right">
       <ul>
@@ -11,6 +16,7 @@
         <li>{{ movie.credits.cast[3].name }}</li>
       </ul>
       <div class="rating">{{ movie.vote_average }}</div>
+    </div>
     </div>
   </div>
 </template>
@@ -33,18 +39,31 @@ export default {
   width: 90%;
   margin: auto;
   margin-top: 10px;
+  margin-bottom: 40px;
   text-align: left;
-  background: rgba(0, 0, 0, .5);
-  padding: 0 20px 0 20px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 20px 20px 40px 20px;
+}
+
+.desc-header {
+  width: 100%;
+}
+
+.desc-body {
+  display: flex;
 }
 
 .desc-left {
-  width: 60%;
-  float: left;
+  flex: 3;
 }
 
 .desc-right {
-  float: right;
+  flex: 2;
+  text-align: right;
+}
+
+ul {
+  list-style: none;
 }
 
 .faint {
