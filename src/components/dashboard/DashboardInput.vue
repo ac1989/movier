@@ -12,3 +12,9 @@ export default {
   ],
 };
 </script>
+
+<style>
+.dashboard-input {
+  height: 160px;
+}
+</style>

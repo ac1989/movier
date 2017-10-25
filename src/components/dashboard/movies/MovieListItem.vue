@@ -1,10 +1,9 @@
 <template>
-  <div 
-    class="movie-list-item" 
-    v-bind:style="{ background: `url(${posterUrl})`}"
-    @click="setSelectedMovie">
-    <p>{{ movie.title }}</p>
-    <p>{{ movie.vote_average }}</p>
+  <div class="movie-list-item">
+    <div 
+      class="item-card"
+      v-bind:style="{ 'background-image': `url(${posterUrl})`}"
+      @click="setSelectedMovie"></div>
   </div>
 </template>
 
@@ -25,3 +24,26 @@ export default {
   },
 };
 </script>
+
+<style>
+.movie-list-item {
+  width: 228px;
+  height: 340px;
+}
+
+.item-card {
+  background-color: black;
+  width: 208px;
+  height: 320px;
+  margin: 10px;
+  background-size: cover;
+  background-position: center;
+  transition: all 0.2s ease-out;
+}
+
+.item-card:hover {
+  transform: scale(1.06);
+  transition: all 0.2s ease-out;
+  cursor: pointer;
+}
+</style>

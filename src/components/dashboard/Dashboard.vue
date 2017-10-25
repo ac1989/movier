@@ -1,7 +1,8 @@
 <template>
   <div class="dashboard">
+    <div class="back-color"></div>
+    <div class="backdrop" v-bind:style="{ 'background-image': `url(${backdropUrl})` }"></div>
     <mv-dashboard-input :mode="mode"></mv-dashboard-input>
-    <p>Mode: {{ mode }}</p>
     <mv-movie-list v-if="mode == 'rec'"></mv-movie-list>
     <mv-movie-description 
       v-if="mode == 'rec'"
@@ -23,6 +24,10 @@ export default {
     selectedMovie() {
       return this.$store.getters.selectedMovie;
     },
+    backdropUrl() {
+      console.log(`https://image.tmdb.org/t/p/original${this.selectedMovie.backdrop_path}`);
+      return `https://image.tmdb.org/t/p/original${this.selectedMovie.backdrop_path}`;
+    },
   },
   components: {
     'mv-dashboard-input': DashboardInput,
@@ -31,3 +36,27 @@ export default {
   },
 };
 </script>
+
+<style>
+.dashboard {
+  height: 100vh;
+}
+
+.backdrop {
+  height: 100vh;
+  width: 100%;
+  z-index: -1;
+  opacity: 0.33;
+  position: fixed;
+  background-position: center top;
+  background-size: cover;
+}
+
+.back-color {
+  height: 100vh;
+  width: 100%;
+  z-index: -2;
+  background: black;
+  position: fixed;
+}
+</style>

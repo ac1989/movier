@@ -1,6 +1,5 @@
 <template>
   <div class="movie-list">
-    <h2>Movie List Component</h2>
     <mv-movie-list-item
       v-for="movie in movies"
       :key="movie.id"
@@ -24,3 +23,13 @@ export default {
 };
 </script>
 
+<style scoped>
+.movie-list {
+  width: 90%;
+  margin: auto;
+  display: flex;
+  justify-content: space-around;
+  align-content: center;
+  
+}
+</style>
