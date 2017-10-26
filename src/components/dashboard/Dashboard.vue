@@ -25,7 +25,6 @@ export default {
       return this.$store.getters.selectedMovie;
     },
     backdropUrl() {
-      console.log(`https://image.tmdb.org/t/p/original${this.selectedMovie.backdrop_path}`);
       return `https://image.tmdb.org/t/p/original${this.selectedMovie.backdrop_path}`;
     },
   },
