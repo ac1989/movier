@@ -43,6 +43,7 @@ export default new Vuex.Store({
 
       axios.get(`${API_URL}movie/${movieId}${API_KEY}&append_to_response=credits,keywords`)
         .then((res) => {
+          console.log(res);
           let flagHorror = false;
           let flagFamily = false;
 
@@ -106,30 +107,35 @@ export default new Vuex.Store({
           };
 
           // *** ADD A DIRECTORIAL CRITERIA
+          const getMoviesByDirector = () => {
+            const director = res.data.credits.crew.find(member => member.job === 'Director');
+            const directorString = `&with_crew=${director.id}`;
+            const queryString = makeDiscoverReqString(directorString);
+            return axios.get(queryString);
+          };
+
+          const getMoviesByWriter = () => {
+            const writer = res.data.credits.crew.find(member => member.job === 'Screenplay');
+            console.log(writer);
+            const writerString = `&with_crew=${writer.id}`;
+            const queryString = makeDiscoverReqString(writerString);
+            return axios.get(queryString);
+          };
 
           axios.all([
             getMoviesByActor(),
             getMovieByGenre(),
             getMoviesByPCs(),
+            getMoviesByDirector(),
+            getMoviesByWriter(),
           ])
-            .then(axios.spread((actors, genres, productions) => {
-              console.log(actors);
-              console.log(genres);
-              console.log(productions);
-
-              // Combine Results
-              const results = [
-                ...actors.data.results,
-                ...genres.data.results,
-                ...productions.data.results,
-              ];
-              console.log(results);
-
-              // With Object.assign?
+            .then(axios.spread((actors, genres, productions, director, writer) => {
               const resultsObject = {
                 actors: [],
                 genres: [],
                 productions: [],
+                director: [],
+                writer: [],
               };
               // Remove Garbage Movies
               resultsObject.actors = actors.data.results.filter(
@@ -137,6 +143,10 @@ export default new Vuex.Store({
               resultsObject.genres = genres.data.results.filter(
                 movie => movie.vote_average > minRating && movie.vote_count > 200);
               resultsObject.productions = productions.data.results.filter(
+                movie => movie.vote_average > minRating && movie.vote_count > 200);
+              resultsObject.director = director.data.results.filter(
+                movie => movie.vote_average > minRating && movie.vote_count > 200);
+              resultsObject.writer = writer.data.results.filter(
                 movie => movie.vote_average > minRating && movie.vote_count > 200);
 
               // Sort By Score

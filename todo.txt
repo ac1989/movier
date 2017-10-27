@@ -1,2 +1,4 @@
 + 25th Oct is all about STYLES.
 + 26th OCt, Tests, mutations and actions.
+
+- Make engine aware of important genres.
