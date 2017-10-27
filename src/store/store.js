@@ -8,6 +8,8 @@ Vue.use(Vuex);
 export default new Vuex.Store({
   state: {
     mode: 'inp',
+    recRating: 8,
+    recStage: 0,
     recMovies: dummyData.results,
     selectedMovie: dummyData.results[1],
   },
@@ -32,30 +34,126 @@ export default new Vuex.Store({
       commit('SELECT_MOVIE', movie);
     },
     generateRec({ commit }, movieId) {
-      const apiUrl = 'https://api.themoviedb.org/3/';
-      const key = '8df45a2576b9f04343b3848be392d4ba';
-      axios.get(`${apiUrl}movie/${movieId}?api_key=${key}&append_to_response=credits,keywords`)
+      const API_URL = 'https://api.themoviedb.org/3/';
+      const API_KEY = '?api_key=8df45a2576b9f04343b3848be392d4ba';
+      const DISCOVER_URL = 'https://api.themoviedb.org/3/discover/movie';
+      const COMMON_OPTS = '&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&page=1';
+
+      let minRating = 6;
+
+      axios.get(`${API_URL}movie/${movieId}${API_KEY}&append_to_response=credits,keywords`)
         .then((res) => {
-          const getMovieByActor01 = () => {
-            const actor = res.data.credits.cast[0].id;
-            return axios.get(`${apiUrl}discover/movie?api_key=${key}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&page=1&with_cast=${actor}`);
-          };
-          const getMovieByActor02 = () => {
-            const actor = res.data.credits.cast[1].id;
-            return axios.get(`${apiUrl}discover/movie?api_key=${key}&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&page=1&with_cast=${actor}`);
+          let flagHorror = false;
+          let flagFamily = false;
+
+          const makeDiscoverReqString = (query, criteria) => {
+            let string = `${DISCOVER_URL}${API_KEY}${COMMON_OPTS}${query}`;
+            if (flagHorror && criteria === 'genre') {
+              string = `${DISCOVER_URL}${API_KEY}${COMMON_OPTS}
+              &with_genres=27`;
+              minRating = 5.5;
+            }
+            if (flagHorror) {
+              string += '&certification_country=US&certification=R';
+            }
+            if (flagFamily) {
+              string += '&certification_country=US&certification.lte=G';
+            }
+            return string;
           };
 
-          console.log(res);
-          console.log(`Search for movie starring ${res.data.credits.cast[0].name}`);
-          console.log(`Search for movie in genre ${res.data.genres[0].name}`);
-          console.log(`Search for movie starring ${res.data.credits.cast[1].name}`);
-          console.log(`Search for movie with keyword ${res.data.keywords.keywords[0].name}`);
-          console.log(`Search for movie from company ${res.data.production_companies[0].name}`);
+          if (res.data.genres.find(genre => genre.name === 'Horror')) {
+            flagHorror = true;
+            console.log(flagHorror);
+            console.log('It\'s a spooky film');
+          }
+          if (res.data.genres.find(genre => genre.name === 'Family')) {
+            flagFamily = true;
+            console.log(flagFamily);
+            console.log('Fun for all the family');
+          }
+          const getMoviesByActor = () => {
+            const actors = res.data.credits.cast.slice(0, 3);
+            let actorString = '&with_cast=';
+            actors.forEach((actor) => {
+              actorString += `${actor.id}|`;
+            });
+            actorString = actorString.substring(0, actorString.length - 1);
+            const queryString = makeDiscoverReqString(actorString);
+            return axios.get(queryString);
+          };
 
-          axios.all([getMovieByActor01(), getMovieByActor02()])
-            .then(axios.spread((actor01, actor02) => {
-              console.log(actor01);
-              console.log(actor02);
+          const getMovieByGenre = () => {
+            const genres = res.data.genres.slice(0, 3);
+            let genreString = '&with_genres=';
+            genres.forEach((genre) => {
+              genreString += `${genre.id}|`;
+            });
+            genreString = genreString.substring(0, genreString.length - 1);
+            const queryString = makeDiscoverReqString(genreString, 'genre');
+            return axios.get(queryString);
+          };
+
+          const getMoviesByPCs = () => {
+            const productionCompanies = res.data.production_companies;
+            let pCString = '&with_companies=';
+            productionCompanies.forEach((item) => {
+              pCString += `${item.id}|`;
+            });
+            pCString = pCString.substring(0, pCString.length - 1);
+            const queryString = makeDiscoverReqString(pCString);
+            return axios.get(queryString);
+          };
+
+          // *** ADD A DIRECTORIAL CRITERIA
+
+          axios.all([
+            getMoviesByActor(),
+            getMovieByGenre(),
+            getMoviesByPCs(),
+          ])
+            .then(axios.spread((actors, genres, productions) => {
+              console.log(actors);
+              console.log(genres);
+              console.log(productions);
+
+              // Combine Results
+              const results = [
+                ...actors.data.results,
+                ...genres.data.results,
+                ...productions.data.results,
+              ];
+              console.log(results);
+
+              // With Object.assign?
+              const resultsObject = {
+                actors: [],
+                genres: [],
+                productions: [],
+              };
+              // Remove Garbage Movies
+              resultsObject.actors = actors.data.results.filter(
+                movie => movie.vote_average > minRating && movie.vote_count > 200);
+              resultsObject.genres = genres.data.results.filter(
+                movie => movie.vote_average > minRating && movie.vote_count > 200);
+              resultsObject.productions = productions.data.results.filter(
+                movie => movie.vote_average > minRating && movie.vote_count > 200);
+
+              // Sort By Score
+              const sortByScore = (a, b) => {
+                if (a.vote_average < b.vote_average) {
+                  return 1;
+                }
+                if (b.vote_average < a.vote_average) {
+                  return -1;
+                }
+                return 0;
+              };
+              resultsObject.actors = resultsObject.actors.sort(sortByScore);
+              resultsObject.genres = resultsObject.genres.sort(sortByScore);
+              resultsObject.productions = resultsObject.productions.sort(sortByScore);
+              console.log(resultsObject);
+              // Make Mutation To Set recMovies
             }));
         });
     },

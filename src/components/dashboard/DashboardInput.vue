@@ -13,7 +13,7 @@
         v-for="(result, index) in autoMovies.results" 
         :key="result.id"
         v-on:click="generateRec(index)">
-          {{ result.title }}
+          {{ result.title }} <span>{{ result.release_date.substring(0, 4) }}</span>
         </li>
       </ul>
     </div>
