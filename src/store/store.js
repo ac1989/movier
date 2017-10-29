@@ -115,7 +115,13 @@ export default new Vuex.Store({
           };
 
           const getMoviesByWriter = () => {
-            const writer = res.data.credits.crew.find(member => member.job === 'Screenplay');
+            let writer = {};
+            if (res.data.credits.crew.find(member => member.job === 'Screenplay')) {
+              writer = res.data.credits.crew.find(member => member.job === 'Screenplay');
+            } else if (res.data.credits.crew.find(member => member.job === 'Writer')) {
+              writer = res.data.credits.crew.find(member => member.job === 'Writer');
+            }
+            res.data.credits.crew.find(member => member.job === 'Screenplay');
             console.log(writer);
             const writerString = `&with_crew=${writer.id}`;
             const queryString = makeDiscoverReqString(writerString);
@@ -137,7 +143,9 @@ export default new Vuex.Store({
                 director: [],
                 writer: [],
               };
+
               // Remove Garbage Movies
+              // *** DRY THIS
               resultsObject.actors = actors.data.results.filter(
                 movie => movie.vote_average > minRating && movie.vote_count > 200);
               resultsObject.genres = genres.data.results.filter(
@@ -149,6 +157,11 @@ export default new Vuex.Store({
               resultsObject.writer = writer.data.results.filter(
                 movie => movie.vote_average > minRating && movie.vote_count > 200);
 
+              // Remove The Queried Movie
+              Object.keys(resultsObject).forEach((key) => {
+                resultsObject[key] = resultsObject[key].filter(movie => movie.id !== movieId);
+              });
+
               // Sort By Score
               const sortByScore = (a, b) => {
                 if (a.vote_average < b.vote_average) {
@@ -159,11 +172,42 @@ export default new Vuex.Store({
                 }
                 return 0;
               };
-              resultsObject.actors = resultsObject.actors.sort(sortByScore);
-              resultsObject.genres = resultsObject.genres.sort(sortByScore);
-              resultsObject.productions = resultsObject.productions.sort(sortByScore);
+
+              Object.keys(resultsObject).forEach((key) => {
+                resultsObject[key] = resultsObject[key].sort(sortByScore);
+              });
+
+              // Remove Duplicates
+              let allowOne = true;
+              const removeDupesFromArr = (movieToMatch, arrayToCheck, key) => {
+                const filtered = arrayToCheck.filter((arrayItem) => {
+                  if (movieToMatch.id === arrayItem.id && allowOne) {
+                    allowOne = false;
+                    return true;
+                  }
+                  if (movieToMatch.id === arrayItem.id) {
+                    return false;
+                  }
+                  return true;
+                });
+                resultsObject[key] = filtered;
+              };
+
+              const removeDupesFromAll = (movieToMatch, dataObjectToProcess) => {
+                const keys = Object.keys(dataObjectToProcess);
+                keys.forEach((key) => {
+                  removeDupesFromArr(movieToMatch, resultsObject[key], key);
+                });
+                allowOne = true;
+              };
+
+              Object.keys(resultsObject).forEach((x) => {
+                resultsObject[x].forEach((item) => {
+                  removeDupesFromAll(item, resultsObject);
+                });
+              });
+
               console.log(resultsObject);
-              // Make Mutation To Set recMovies
             }));
         });
     },
