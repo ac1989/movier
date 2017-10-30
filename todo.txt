@@ -2,3 +2,14 @@
 + 26th OCt, Tests, mutations and actions.
 
 - Make engine aware of important genres.
+
+* animations
+* typography
+* layout tweaks
+* no more movies
+* --- set input text to clicked movie
+* input styles
+* --- background transition logic
+* handle empty loads
+* limit autocomplete results
+* transitional state?

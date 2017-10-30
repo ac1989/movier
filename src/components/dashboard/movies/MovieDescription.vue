@@ -1,20 +1,18 @@
 <template>
-  <div class="movie-description">
+  <div class="movie-description" v-if="shouldShow && movie.id">
     <div class="desc-header">
       <h1>{{ movie.title }} <span class="faint">({{ movieYear }})</span></h1>
     </div>
     <div class="desc-body">
     <div class="desc-left">
       <p>{{ movie.overview }}</p> 
-      <h3>Recommendation Reason:</h3>
-      <p>Cast</p>
     </div>
     <div class="desc-right">
-      <ul>
+      <!-- <ul>
         <li>{{ movie.credits.cast[0].name }}</li>
         <li>{{ movie.credits.cast[1].name }}</li>
         <li>{{ movie.credits.cast[3].name }}</li>
-      </ul>
+      </ul> -->
       <div class="rating">{{ movie.vote_average }}</div>
     </div>
     </div>
@@ -29,6 +27,12 @@ export default {
   computed: {
     movieYear() {
       return this.movie.release_date.substring(0, 4);
+    },
+    shouldShow() {
+      if (this.$store.getters.movies.length > 0) {
+        return true;
+      }
+      return false;
     },
   },
 };

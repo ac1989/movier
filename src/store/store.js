@@ -1,7 +1,6 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import axios from 'axios';
-import dummyData from '../data/data';
 
 Vue.use(Vuex);
 
@@ -10,8 +9,9 @@ export default new Vuex.Store({
     mode: 'inp',
     recRating: 8,
     recStage: 0,
-    recMovies: dummyData.results,
-    selectedMovie: dummyData.results[1],
+    recMoviePool: {},
+    recMovies: [],
+    selectedMovie: {},
   },
   getters: {
     mode: state => state.mode,
@@ -25,6 +25,15 @@ export default new Vuex.Store({
     SELECT_MOVIE(state, movie) {
       state.selectedMovie = movie;
     },
+    SET_DEFAULT_MOVIE(state) {
+      state.selectedMovie = state.recMovies[0];
+    },
+    SET_MOVIE_POOL(state, moviePool) {
+      state.recMoviePool = moviePool;
+    },
+    SET_REC_MOVIES(state, movieArray) {
+      state.recMovies = movieArray;
+    },
   },
   actions: {
     setMode({ commit }, mode) {
@@ -33,20 +42,84 @@ export default new Vuex.Store({
     setSelectedMovie({ commit }, movie) {
       commit('SELECT_MOVIE', movie);
     },
-    generateRec({ commit }, movieId) {
+    setDefaultMovie({ commit }) {
+      commit('SET_DEFAULT_MOVIE');
+    },
+    makeRecs({ commit }) {
+      // take the movie pool
+      const pool = this.state.recMoviePool;
+      const movieArray = [];
+      const generationLoop = () => {
+        const totalPoolSize = () => {
+          let total = 0;
+          Object.keys(pool).forEach((key) => {
+            total += pool[key].length;
+          });
+          return total;
+        };
+        const arrayFull = () => {
+          const poolSize = totalPoolSize();
+          if (movieArray.length === 5 || poolSize < 5) {
+            return true;
+          }
+          return false;
+        };
+
+        if (pool.director.length >= 1 && !arrayFull()) {
+          movieArray.push(pool.director[0]);
+          pool.director.splice(0, 1);
+        }
+
+        if (pool.director.length >= 1 && !arrayFull()) {
+          movieArray.push(pool.director[0]);
+          pool.director.splice(0, 1);
+        }
+
+        if (pool.genres.length >= 1 && !arrayFull()) {
+          movieArray.push(pool.genres[0]);
+          pool.genres.splice(0, 1);
+        }
+
+        if (pool.actors.length >= 1 && !arrayFull()) {
+          movieArray.push(pool.actors[0]);
+          pool.actors.splice(0, 1);
+        }
+
+        if (pool.writer.length >= 1 && !arrayFull()) {
+          movieArray.push(pool.writer[0]);
+          pool.writer.splice(0, 1);
+        }
+
+        if (pool.productions.length >= 1 && !arrayFull()) {
+          movieArray.push(pool.productions[0]);
+          pool.productions.splice(0, 1);
+        }
+
+        if (!arrayFull()) {
+          generationLoop();
+        }
+      };
+      generationLoop();
+
+      commit('SET_REC_MOVIES', movieArray);
+
+      // if the array.length isn't > 4
+        // do it all again
+    },
+    generatePool({ commit }, movieId) {
       const API_URL = 'https://api.themoviedb.org/3/';
       const API_KEY = '?api_key=8df45a2576b9f04343b3848be392d4ba';
       const DISCOVER_URL = 'https://api.themoviedb.org/3/discover/movie';
       const COMMON_OPTS = '&language=en-US&sort_by=popularity.desc&include_adult=false&include_video=false&page=1';
 
-      let minRating = 6;
+      let minRating = 7;
 
-      axios.get(`${API_URL}movie/${movieId}${API_KEY}&append_to_response=credits,keywords`)
+      axios.get(`${API_URL}movie/${movieId}${API_KEY}&append_to_response=credits`)
         .then((res) => {
-          console.log(res);
           let flagHorror = false;
           let flagFamily = false;
 
+          // *** Perhaps there is a better way to build request strings?
           const makeDiscoverReqString = (query, criteria) => {
             let string = `${DISCOVER_URL}${API_KEY}${COMMON_OPTS}${query}`;
             if (flagHorror && criteria === 'genre') {
@@ -65,16 +138,12 @@ export default new Vuex.Store({
 
           if (res.data.genres.find(genre => genre.name === 'Horror')) {
             flagHorror = true;
-            console.log(flagHorror);
-            console.log('It\'s a spooky film');
           }
           if (res.data.genres.find(genre => genre.name === 'Family')) {
             flagFamily = true;
-            console.log(flagFamily);
-            console.log('Fun for all the family');
           }
           const getMoviesByActor = () => {
-            const actors = res.data.credits.cast.slice(0, 3);
+            const actors = res.data.credits.cast.slice(0, 2);
             let actorString = '&with_cast=';
             actors.forEach((actor) => {
               actorString += `${actor.id}|`;
@@ -92,7 +161,7 @@ export default new Vuex.Store({
             });
             genreString = genreString.substring(0, genreString.length - 1);
             const queryString = makeDiscoverReqString(genreString, 'genre');
-            return axios.get(queryString);
+            return axios.get(`${queryString}&append_to_response=credits`);
           };
 
           const getMoviesByPCs = () => {
@@ -106,7 +175,6 @@ export default new Vuex.Store({
             return axios.get(queryString);
           };
 
-          // *** ADD A DIRECTORIAL CRITERIA
           const getMoviesByDirector = () => {
             const director = res.data.credits.crew.find(member => member.job === 'Director');
             const directorString = `&with_crew=${director.id}`;
@@ -122,7 +190,6 @@ export default new Vuex.Store({
               writer = res.data.credits.crew.find(member => member.job === 'Writer');
             }
             res.data.credits.crew.find(member => member.job === 'Screenplay');
-            console.log(writer);
             const writerString = `&with_crew=${writer.id}`;
             const queryString = makeDiscoverReqString(writerString);
             return axios.get(queryString);
@@ -137,25 +204,18 @@ export default new Vuex.Store({
           ])
             .then(axios.spread((actors, genres, productions, director, writer) => {
               const resultsObject = {
-                actors: [],
-                genres: [],
-                productions: [],
-                director: [],
-                writer: [],
+                actors: actors.data.results,
+                genres: genres.data.results,
+                productions: productions.data.results,
+                director: director.data.results,
+                writer: writer.data.results,
               };
 
               // Remove Garbage Movies
-              // *** DRY THIS
-              resultsObject.actors = actors.data.results.filter(
-                movie => movie.vote_average > minRating && movie.vote_count > 200);
-              resultsObject.genres = genres.data.results.filter(
-                movie => movie.vote_average > minRating && movie.vote_count > 200);
-              resultsObject.productions = productions.data.results.filter(
-                movie => movie.vote_average > minRating && movie.vote_count > 200);
-              resultsObject.director = director.data.results.filter(
-                movie => movie.vote_average > minRating && movie.vote_count > 200);
-              resultsObject.writer = writer.data.results.filter(
-                movie => movie.vote_average > minRating && movie.vote_count > 200);
+              Object.keys(resultsObject).forEach((key) => {
+                resultsObject[key] = resultsObject[key].filter(
+                  movie => movie.vote_average > minRating && movie.vote_count > 200);
+              });
 
               // Remove The Queried Movie
               Object.keys(resultsObject).forEach((key) => {
@@ -207,7 +267,8 @@ export default new Vuex.Store({
                 });
               });
 
-              console.log(resultsObject);
+              commit('SET_MOVIE_POOL', resultsObject);
+              commit('SELECT_MODE', 'rec');
             }));
         });
     },

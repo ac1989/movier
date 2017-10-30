@@ -25,7 +25,13 @@ export default {
       return this.$store.getters.selectedMovie;
     },
     backdropUrl() {
-      return `https://image.tmdb.org/t/p/original${this.selectedMovie.backdrop_path}`;
+      // Preload image for smooth transition.
+      const imgUrl = `https://image.tmdb.org/t/p/original${this.selectedMovie.backdrop_path}`;
+      const image = new Image();
+      image.src = imgUrl;
+      image.onload = function () {
+        document.querySelector('.backdrop').style.backgroundImage = `url(${imgUrl})`;
+      };
     },
   },
   components: {
@@ -49,6 +55,7 @@ export default {
   position: fixed;
   background-position: center top;
   background-size: cover;
+  transition: all 0.6s ease-in-out;
 }
 
 .back-color {

@@ -1,11 +1,10 @@
 // the input becomes the header
 <template>
   <div :class="modeClass">
-    <div class="mode-inp">
+    <div class="mode-inp" v-if="mode == 'inp'">
       <input 
         type="text" 
-        v-model="searchMovie" 
-        v-if="mode == 'inp'"
+        v-model="searchMovie"
         v-on:keyup="findMovie">
       <button class="btn-search">Search</button>
       <ul>
@@ -18,7 +17,7 @@
       </ul>
     </div>
     <div class="mode-rec">
-      <h2>{{ searchMovie }} \/</h2>
+      <h2 v-on:click="returnToInput">{{ searchMovie }} \/</h2>
     </div>
   </div>
 </template>
@@ -46,7 +45,15 @@ export default {
         });
     }, 400),
     generateRec(index) {
-      this.$store.dispatch('generateRec', this.autoMovies.results[index].id);
+      this.searchMovie = this.autoMovies.results[index].title;
+      this.$store.dispatch('generatePool', this.autoMovies.results[index].id);
+    },
+    returnToInput() {
+      if (this.mode === 'rec') {
+        this.searchMovie = '';
+        this.autoMovies = [];
+        this.$store.dispatch('setMode', 'inp');
+      }
     },
   },
   computed: {
@@ -65,6 +72,9 @@ export default {
   margin-bottom: 10px;
   padding: 0 10px 0 10px;
   display: flex;
+}
+.dashboard-input-rec:hover {
+  cursor: pointer
 }
 
 .dashboard-input-tra {
